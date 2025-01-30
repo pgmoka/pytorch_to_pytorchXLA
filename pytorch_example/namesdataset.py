@@ -1,11 +1,3 @@
-from io import open
-import glob
-import os
-import time
-
-import torch
-from torch.utils.data import Dataset
-
 print('-- Initiate Dataset declaration')
 
 # Find letter index from all_letters, e.g. "a" = 0
