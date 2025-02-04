@@ -1,3 +1,11 @@
+import torch
+from torch.utils.data import Dataset
+from io import open
+import glob
+import os
+import numpy as np
+import time
+
 print('-- Initiate Dataset declaration')
 
 # Find letter index from all_letters, e.g. "a" = 0
@@ -10,7 +18,7 @@ def lineToTensor(line):
     tensor = torch.zeros(len(line), 1, n_letters)
     for li, letter in enumerate(line):
         tensor[li][0][letterToIndex(letter)] = 1
-    return tensor
+    return torch.sum(tensor, dim = 0)
 
 class NamesDataset(Dataset):
 

@@ -16,8 +16,6 @@ class DeepANN(nn.Module):
 
         self.flatten = nn.Flatten()
 
-        mid_layer = int(hidden_size * 3/4)
-
         self.linear_deep_stack = nn.Sequential(
             nn.Linear(input_size, hidden_size),
             nn.ReLU(),
