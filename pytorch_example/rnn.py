@@ -1,35 +1,54 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import time
+import numpy as np
+import random
+
 print('-- Initiate model and training declaration')
 
-class CharRNN(nn.Module):
+class DeepANN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
-        super(CharRNN, self).__init__()
+        super().__init__()
 
-        self.rnn = nn.RNN(input_size, hidden_size)
-        self.h2o = nn.Linear(hidden_size, output_size)
+        self.flatten = nn.Flatten()
+
+        mid_layer = int(hidden_size * 3/4)
+
+        self.linear_deep_stack = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, output_size)
+        )
+        nn.Transformer()
+
         self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, line_tensor):
-        rnn_out, hidden = self.rnn(line_tensor)
-        output = self.h2o(hidden[0])
+        # x = self.flatten(line_tensor)
+        output = self.linear_deep_stack(line_tensor)
         output = self.softmax(output)
 
         return output
 
-def train(rnn, training_data, n_epoch = 10, n_batch_size = 64, report_every = 50, learning_rate = 0.2, criterion = nn.NLLLoss()):
+def train(model, training_data, n_epoch = 10, n_batch_size = 64, report_every = 50, learning_rate = 0.2, criterion = nn.NLLLoss()):
     """
     Learn on a batch of training_data for a specified number of iterations and reporting thresholds
     """
     # Keep track of losses for plotting
     current_loss = 0
     all_losses = []
-    rnn.train()
-    optimizer = torch.optim.SGD(rnn.parameters(), lr=learning_rate)
+    model.train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
     start = time.time()
     print(f"training on data set with n = {len(training_data)}")
 
     for iter in range(1, n_epoch + 1):
-        rnn.zero_grad() # clear the gradients
+        model.zero_grad() # clear the gradients
 
         # create some minibatches
         # we cannot use dataloaders because each of our names is a different length
@@ -41,13 +60,13 @@ def train(rnn, training_data, n_epoch = 10, n_batch_size = 64, report_every = 50
             batch_loss = 0
             for i in batch: #for each example in this batch
                 (label_tensor, text_tensor, label, text) = training_data[i]
-                output = rnn.forward(text_tensor)
+                output = model.forward(text_tensor)
                 loss = criterion(output, label_tensor)
                 batch_loss += loss
 
             # optimize parameters
             batch_loss.backward()
-            nn.utils.clip_grad_norm_(rnn.parameters(), 3)
+            nn.utils.clip_grad_norm_(model.parameters(), 3)
             optimizer.step()
             optimizer.zero_grad()
 
@@ -59,6 +78,11 @@ def train(rnn, training_data, n_epoch = 10, n_batch_size = 64, report_every = 50
         current_loss = 0
 
     return all_losses
+
+def label_from_output(output, output_labels):
+    top_n, top_i = output.topk(1)
+    label_i = top_i[0].item()
+    return output_labels[label_i], label_i
 
 def evaluate(rnn, testing_data, classes):
     confusion = torch.zeros(len(classes), len(classes))
