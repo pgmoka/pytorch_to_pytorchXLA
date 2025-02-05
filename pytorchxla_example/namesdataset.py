@@ -5,6 +5,10 @@ import glob
 import os
 import numpy as np
 import time
+import string
+
+allowed_characters = string.ascii_letters + " .,;'"
+n_letters = len(allowed_characters)
 
 print('-- Initiate Dataset declaration')
 
@@ -37,7 +41,7 @@ class NamesDataset(Dataset):
         for filename in text_files:
             label = os.path.splitext(os.path.basename(filename))[0]
             labels_set.add(label)
-            lines = open(filename, encoding='utf-8').read().strip().split('\n')
+            lines = open(filename, 'r', encoding='utf-8').read().strip().split('\n')
             for name in lines:
                 self.data.append(name)
                 self.data_tensors.append(lineToTensor(name))

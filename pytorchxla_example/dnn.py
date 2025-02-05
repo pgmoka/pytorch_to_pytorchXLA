@@ -34,7 +34,7 @@ class DeepANN(nn.Module):
 
         return output
 
-def train(model, training_data, n_epoch = 10, n_batch_size = 64, report_every = 50, learning_rate = 0.2, criterion = nn.NLLLoss()):
+def train(model, training_data, n_epoch, learning_rate, report_every, n_batch_size, criterion = nn.NLLLoss()):
     """
     Learn on a batch of training_data for a specified number of iterations and reporting thresholds
     """
@@ -125,5 +125,5 @@ def evaluate(rnn, testing_data, classes):
 
 print('-- Finished model and training declaration')
 
-if __name__ == '__main__':
-  xla.launch(train, args=())
+# if __name__ == '__main__':
+#   xla.launch(train, args=((dnn, train_set, 27, 0.15, 5, 10)))
