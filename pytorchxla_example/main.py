@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import Dataset
 import torch_xla as xla
+import torch_xla.core.xla_model as xm
 import matplotlib
 import matplotlib.pyplot as plt
 import time
@@ -17,6 +18,8 @@ if __name__ == '__main__':
 
   print('--- Prepare and load data')
 
+  device_tpu = xm.xla_device()
+  print(f"Device: {device_tpu}")
 
   print(f"Using device = {torch.get_default_device()}")
 
