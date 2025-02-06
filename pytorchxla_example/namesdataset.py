@@ -41,7 +41,9 @@ class NamesDataset(Dataset):
         for filename in text_files:
             label = os.path.splitext(os.path.basename(filename))[0]
             labels_set.add(label)
-            lines = open(filename, 'r', encoding='utf-8').read().strip().split('\n')
+            lines_file = open(filename, 'r', encoding='utf-8')
+            lines = lines_file.read().strip().split('\n')
+            lines_file.close()
             for name in lines:
                 self.data.append(name)
                 self.data_tensors.append(lineToTensor(name))
