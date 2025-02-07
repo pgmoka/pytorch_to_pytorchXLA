@@ -50,14 +50,16 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
 
     start = time.time()
 
-    # Set-up DistributedDataParallel
     dist.init_process_group("xla", init_method='xla://')
+
     # Move model to TPU
     model.to(xla.device())
     ddp_model = DDP(model, gradient_as_bucket_view=True)
+    ddp_model.to(xla.device())
     for iter in range(1, n_epoch + 1):
+      # Use XLA step
       with xla.step():
-        model.zero_grad()
+        ddp_model.zero_grad()
 
         batches = list(range(len(training_data)))
         random.shuffle(batches)
@@ -66,8 +68,8 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
         for idx, batch in enumerate(batches):
             batch_loss = 0
             for i in batch:
-              # Executes steps using xla
               (label_tensor, text_tensor, label, text) = training_data[i]
+              # Move training data to XLA
               text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
               output = ddp_model.forward(text_tensor)
               loss = criterion(output, label_tensor)
@@ -76,7 +78,9 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
             batch_loss.backward()
             nn.utils.clip_grad_norm_(ddp_model.parameters(), 3)
 
+            # Use optimizer step from XLA
             optimizer.step()
+
             optimizer.zero_grad()
 
             current_loss += batch_loss.item() / len(batch)
@@ -85,6 +89,12 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
         if iter % report_every == 0:
             print(f"{iter} ({iter / n_epoch:.0%}): \t average batch loss = {all_losses[-1]}")
         current_loss = 0
+    model = ddp_model
+
+    plt.figure()
+    plt.plot(all_losses)
+    plt.show()
+    plt.savefig('loss.png')
 
     return all_losses
 

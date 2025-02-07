@@ -25,8 +25,6 @@ if __name__ == '__main__':
 
   print('--- Prepare and load data')
 
-  torch.multiprocessing.set_sharing_strategy('file_system')
-
   allowed_characters = string.ascii_letters + " .,;'"
   n_letters = len(allowed_characters)
 
@@ -65,7 +63,7 @@ if __name__ == '__main__':
 
   start = time.time()
 
-  xla.launch(dnn_helper.train, args=(dnn, train_set, 5, 0.15, 35, 3))
+  xla.launch(dnn_helper.train, args=(dnn, train_set, 2, 0.15, 35, 3))
   # all_losses = train(dnn, train_set, n_epoch=27, learning_rate=0.15, report_every=5)
   end = time.time()
   print(f"training took {end-start}s")
@@ -88,4 +86,4 @@ if __name__ == '__main__':
   # plt.show()
   # plt.savefig('loss.png')
 
-  dnn_helper.evaluate(dnn, test_set, classes=alldata.labels_uniq)
+  # dnn_helper.evaluate(dnn, test_set, classes=alldata.labels_uniq)
