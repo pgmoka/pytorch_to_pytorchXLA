@@ -20,7 +20,12 @@ faulthandler.enable()
 if __name__ == '__main__':
   print('--- Start main')
 
+  print('--- Change pytorch sharing strategy')
+  torch.multiprocessing.set_sharing_strategy('file_system')
+
   print('--- Prepare and load data')
+
+  torch.multiprocessing.set_sharing_strategy('file_system')
 
   allowed_characters = string.ascii_letters + " .,;'"
   n_letters = len(allowed_characters)
@@ -74,11 +79,12 @@ if __name__ == '__main__':
   print(output)
   print(dnn_helper.label_from_output(output, alldata.labels_uniq))
 
-  # all_losses = np.array(all_losses)
-  # all_losses
+  all_losses = np.array(all_losses)
+  all_losses
 
-  # plt.figure()
-  # plt.plot(all_losses)
-  # plt.show()
+  plt.figure()
+  plt.plot(all_losses)
+  plt.show()
+  plt.savefig('loss.png')
 
-  # dnn_helper.evaluate(dnn, test_set, classes=alldata.labels_uniq)
+  dnn_helper.evaluate(dnn, test_set, classes=alldata.labels_uniq)

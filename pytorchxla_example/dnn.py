@@ -2,8 +2,10 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.parallel import DistributedDataParallel as DDP
 import torch_xla as xla
 import torch_xla.core.xla_model as xm
+import torch_xla.distributed.xla_backend
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -47,10 +49,12 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
     start = time.time()
-    print(f"training on data set with n = {len(training_data)}")
 
+    # Set-up DistributedDataParallel
+    dist.init_process_group("xla", init_method='xla://')
     # Move model to TPU
     model.to(xla.device())
+    ddp_model = DDP(model, gradient_as_bucket_view=True)
     for iter in range(1, n_epoch + 1):
       with xla.step():
         model.zero_grad()
@@ -72,8 +76,7 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
             batch_loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), 3)
 
-            # Run XLA optimizer step
-            xm.optimizer_step(optimizer)
+            optimizer.step()
             optimizer.zero_grad()
 
             current_loss += batch_loss.item() / len(batch)
@@ -124,6 +127,7 @@ def evaluate(rnn, testing_data, classes):
 
     # sphinx_gallery_thumbnail_number = 2
     plt.show()
+    plt.savefig('evaluation.png')
 
 
 print('-- Finished model and training declaration')
