@@ -55,7 +55,7 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
     # Move model to TPU
     model.to(xla.device())
     ddp_model = DDP(model, gradient_as_bucket_view=True)
-    ddp_model.to(xla.device())
+    # ddp_model.to(xla.device())
     for iter in range(1, n_epoch + 1):
       # Use XLA step
       with xla.step():
