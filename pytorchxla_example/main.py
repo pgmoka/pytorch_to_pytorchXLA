@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
   start = time.time()
 
-  xla.launch(dnn_helper.train, args=(dnn, train_set, 5, 0.15, 5, 3))
+  xla.launch(dnn_helper.train, args=(dnn, train_set, 5, 0.15, 35, 3))
   # all_losses = train(dnn, train_set, n_epoch=27, learning_rate=0.15, report_every=5)
   end = time.time()
   print(f"training took {end-start}s")
@@ -79,12 +79,13 @@ if __name__ == '__main__':
   print(output)
   print(dnn_helper.label_from_output(output, alldata.labels_uniq))
 
-  all_losses = np.array(all_losses)
-  all_losses
+  # # Loss plotting needs to be refactored to better work with multiprocessing
+  # all_losses = np.array(all_losses)
+  # all_losses
 
-  plt.figure()
-  plt.plot(all_losses)
-  plt.show()
-  plt.savefig('loss.png')
+  # plt.figure()
+  # plt.plot(all_losses)
+  # plt.show()
+  # plt.savefig('loss.png')
 
   dnn_helper.evaluate(dnn, test_set, classes=alldata.labels_uniq)
