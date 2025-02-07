@@ -69,12 +69,12 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
               # Executes steps using xla
               (label_tensor, text_tensor, label, text) = training_data[i]
               text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
-              output = model.forward(text_tensor)
+              output = ddp_model.forward(text_tensor)
               loss = criterion(output, label_tensor)
               batch_loss += loss
 
             batch_loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 3)
+            nn.utils.clip_grad_norm_(ddp_model.parameters(), 3)
 
             optimizer.step()
             optimizer.zero_grad()
