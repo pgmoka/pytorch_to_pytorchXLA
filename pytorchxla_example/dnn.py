@@ -1,4 +1,5 @@
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_xla as xla
@@ -9,6 +10,8 @@ import matplotlib.ticker as ticker
 import time
 import numpy as np
 import random
+import os
+import psutil
 
 print('-- Initiate model and training declaration')
 
@@ -34,11 +37,10 @@ class DeepANN(nn.Module):
 
         return output
 
-def train(model, training_data, n_epoch, learning_rate, report_every, n_batch_size, criterion = nn.NLLLoss()):
+def train(index, model, training_data, n_epoch, learning_rate, report_every, n_batch_size, criterion = nn.NLLLoss()):
     """
     Learn on a batch of training_data for a specified number of iterations and reporting thresholds
     """
-    # Keep track of losses for plotting
     current_loss = 0
     all_losses = []
     model.train()
@@ -47,33 +49,34 @@ def train(model, training_data, n_epoch, learning_rate, report_every, n_batch_si
     start = time.time()
     print(f"training on data set with n = {len(training_data)}")
 
+    # Move model to TPU
     model.to(xla.device())
     for iter in range(1, n_epoch + 1):
-        with xla.step():
-          model.zero_grad() # clear the gradients
+      with xla.step():
+        model.zero_grad()
 
-          # create some minibatches
-          # we cannot use dataloaders because each of our names is a different length
-          batches = list(range(len(training_data)))
-          random.shuffle(batches)
-          batches = np.array_split(batches, len(batches) //n_batch_size )
+        batches = list(range(len(training_data)))
+        random.shuffle(batches)
+        batches = np.array_split(batches, len(batches) //n_batch_size )
 
-          for idx, batch in enumerate(batches):
-              batch_loss = 0
-              for i in batch: #for each example in this batch
-                  (label_tensor, text_tensor, label, text) = training_data[i]
-                  text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
-                  output = model.forward(text_tensor)
-                  loss = criterion(output, label_tensor)
-                  batch_loss += loss
+        for idx, batch in enumerate(batches):
+            batch_loss = 0
+            for i in batch:
+              # Executes steps using xla
+              (label_tensor, text_tensor, label, text) = training_data[i]
+              text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
+              output = model.forward(text_tensor)
+              loss = criterion(output, label_tensor)
+              batch_loss += loss
 
-              # optimize parameters
-              batch_loss.backward()
-              nn.utils.clip_grad_norm_(model.parameters(), 3)
-              xm.optimizer_step(optimizer)
-              optimizer.zero_grad()
+            batch_loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), 3)
 
-              current_loss += batch_loss.item() / len(batch)
+            # Run XLA optimizer step
+            xm.optimizer_step(optimizer)
+            optimizer.zero_grad()
+
+            current_loss += batch_loss.item() / len(batch)
 
         all_losses.append(current_loss / len(batches) )
         if iter % report_every == 0:

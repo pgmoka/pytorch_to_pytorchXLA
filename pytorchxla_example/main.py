@@ -8,10 +8,14 @@ import time
 import numpy as np
 import string
 import unicodedata
-
+import os
+import psutil
+import faulthandler
 
 import dnn as dnn_helper
 import namesdataset as nd
+
+faulthandler.enable()
 
 if __name__ == '__main__':
   print('--- Start main')
@@ -35,7 +39,7 @@ if __name__ == '__main__':
 
   train_set, test_set = torch.utils.data.random_split(alldata, [.85, .15], generator=torch.Generator().manual_seed(2024))
 
-  print(f"train examples = {len(train_set)}, validation examples = {len(test_set)}")
+  print(f"train examples = {len(train_set)} (type: {type(train_set)}), validation examples = {len(test_set)}")
 
   print('--- Prepare model')
 
@@ -51,9 +55,12 @@ if __name__ == '__main__':
 
   print('--- Training model')
 
+  process = psutil.Process(os.getpid())
+  print(f" Files open before training: {process.open_files()}")
+
   start = time.time()
 
-  xla.launch(dnn_helper.train, args=((dnn, train_set, 5, 0.15, 5, 3)))
+  xla.launch(dnn_helper.train, args=(dnn, train_set, 5, 0.15, 5, 3))
   # all_losses = train(dnn, train_set, n_epoch=27, learning_rate=0.15, report_every=5)
   end = time.time()
   print(f"training took {end-start}s")
