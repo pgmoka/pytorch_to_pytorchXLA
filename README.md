@@ -1,3 +1,4 @@
+## Repo info
 Repo goes through
 https://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial for
 PyTorch, and then replicates it in PyTorch XLA.
@@ -13,3 +14,10 @@ runs. I am doing this case as a basic example, and I am not diving deeper, but
 the behavior I saw definitely suggests overfitting.
 
 Data pulled from `https://download.pytorch.org/tutorial/data.zip`
+
+## PytorchXLA info
+To do this migration, I used https://github.com/pytorch/xla/tree/8b45e5993bc55dec0303ca7c3a84f59326cab181?tab=readme-ov-file#getting-started.
+This means that we are using the multiprocessing instructions. This has required
+some minor modifications to avoid issues with multiple files being open.
+
+Furthermore, rather than a jupiter notebook, I am relying in `main.py`.
