@@ -28,7 +28,6 @@ class DeepANN(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_size, output_size)
         )
-        nn.Transformer()
 
         self.softmax = nn.LogSoftmax(dim=1)
 
@@ -39,7 +38,7 @@ class DeepANN(nn.Module):
 
         return output
 
-def train(index, model, training_data, n_epoch, learning_rate, report_every, n_batch_size, criterion = nn.NLLLoss()):
+def train(model, training_data, n_epoch = 10, n_batch_size = 64, report_every = 50, learning_rate = 0.2, criterion = nn.NLLLoss()):
     """
     Learn on a batch of training_data for a specified number of iterations and reporting thresholds
     """
@@ -50,16 +49,12 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
 
     start = time.time()
 
-    dist.init_process_group("xla", init_method='xla://')
-
     # Move model to TPU
     model.to(xla.device())
-    ddp_model = DDP(model, gradient_as_bucket_view=True)
-    # ddp_model.to(xla.device())
     for iter in range(1, n_epoch + 1):
       # Use XLA step
       with xla.step():
-        ddp_model.zero_grad()
+        model.zero_grad()
 
         batches = list(range(len(training_data)))
         random.shuffle(batches)
@@ -71,30 +66,23 @@ def train(index, model, training_data, n_epoch, learning_rate, report_every, n_b
               (label_tensor, text_tensor, label, text) = training_data[i]
               # Move training data to XLA
               text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
-              output = ddp_model.forward(text_tensor)
+              output = model.forward(text_tensor)
               loss = criterion(output, label_tensor)
               batch_loss += loss
 
             batch_loss.backward()
-            nn.utils.clip_grad_norm_(ddp_model.parameters(), 3)
-
-            # Use optimizer step from XLA
+            nn.utils.clip_grad_norm_(model.parameters(), 3)
             optimizer.step()
-
             optimizer.zero_grad()
 
             current_loss += batch_loss.item() / len(batch)
+            xm.mark_step()
+            xm.wait_device_ops()
 
         all_losses.append(current_loss / len(batches) )
         if iter % report_every == 0:
             print(f"{iter} ({iter / n_epoch:.0%}): \t average batch loss = {all_losses[-1]}")
         current_loss = 0
-    model = ddp_model
-
-    plt.figure()
-    plt.plot(all_losses)
-    plt.show()
-    plt.savefig('loss.png')
 
     return all_losses
 
@@ -103,14 +91,14 @@ def label_from_output(output, output_labels):
     label_i = top_i[0].item()
     return output_labels[label_i], label_i
 
-def evaluate(rnn, testing_data, classes):
+def evaluate(model, testing_data, classes):
     confusion = torch.zeros(len(classes), len(classes))
 
-    rnn.eval() #set to eval mode
+    model.eval() #set to eval mode
     with torch.no_grad(): # do not record the gradients during eval phase
         for i in range(len(testing_data)):
             (label_tensor, text_tensor, label, text) = testing_data[i]
-            output = rnn(text_tensor)
+            output = model(text_tensor.to('xla'))
             guess, guess_i = label_from_output(output, classes)
             label_i = classes.index(label)
             confusion[label_i][guess_i] += 1

@@ -38,7 +38,7 @@ class NamesDataset(Dataset):
 
         # read all the ``.txt`` files in the specified directory
         # Limiting data due to bug. I am still triaging the issue
-        text_files = glob.glob(os.path.join(data_dir, '*n.txt'))
+        text_files = glob.glob(os.path.join(data_dir, '*.txt'))
         for filename in text_files:
             label = os.path.splitext(os.path.basename(filename))[0]
             labels_set.add(label)
