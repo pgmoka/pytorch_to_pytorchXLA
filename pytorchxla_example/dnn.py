@@ -61,23 +61,23 @@ def train(model, training_data, n_epoch = 10, n_batch_size = 64, report_every = 
         batches = np.array_split(batches, len(batches) //n_batch_size )
 
         for idx, batch in enumerate(batches):
-            batch_loss = 0
-            for i in batch:
-              (label_tensor, text_tensor, label, text) = training_data[i]
-              # Move training data to XLA
-              text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
-              output = model.forward(text_tensor)
-              loss = criterion(output, label_tensor)
-              batch_loss += loss
+          batch_loss = 0
+          for i in batch:
+            (label_tensor, text_tensor, label, text) = training_data[i]
+            # Move training data to XLA
+            text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
+            output = model.forward(text_tensor)
+            loss = criterion(output, label_tensor)
+            batch_loss += loss
 
-            batch_loss.backward()
-            nn.utils.clip_grad_norm_(model.parameters(), 3)
-            optimizer.step()
-            optimizer.zero_grad()
+          batch_loss.backward()
+          nn.utils.clip_grad_norm_(model.parameters(), 3)
+          optimizer.step()
+          optimizer.zero_grad()
 
-            current_loss += batch_loss.item() / len(batch)
-            xm.mark_step()
-            xm.wait_device_ops()
+          current_loss += batch_loss.item() / len(batch)
+          xm.mark_step()
+          xm.wait_device_ops()
 
         all_losses.append(current_loss / len(batches) )
         if iter % report_every == 0:
