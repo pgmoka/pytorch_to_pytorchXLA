@@ -25,8 +25,6 @@ if __name__ == '__main__':
 
   print('--- Prepare and load data')
 
-  torch.multiprocessing.set_sharing_strategy('file_system')
-
   allowed_characters = string.ascii_letters + " .,;'"
   n_letters = len(allowed_characters)
 
@@ -65,8 +63,9 @@ if __name__ == '__main__':
 
   start = time.time()
 
-  xla.launch(dnn_helper.train, args=(dnn, train_set, 5, 0.15, 35, 3))
-  # all_losses = train(dnn, train_set, n_epoch=27, learning_rate=0.15, report_every=5)
+  # Move model to TPU:
+  dnn = dnn.to(xla.device())
+  all_losses = dnn_helper.train(dnn, train_set, n_epoch=27, learning_rate=0.15, report_every=5)
   end = time.time()
   print(f"training took {end-start}s")
 
@@ -74,18 +73,18 @@ if __name__ == '__main__':
 
   print('Post-training sample output:')
 
-  input = nd.lineToTensor('Albert')
+  input = nd.lineToTensor('Albert').to('xla')
   output = dnn(input) #this is equivalent to ``output = dnn.forward(input)``
   print(output)
   print(dnn_helper.label_from_output(output, alldata.labels_uniq))
 
   # # Loss plotting needs to be refactored to better work with multiprocessing
-  # all_losses = np.array(all_losses)
-  # all_losses
+  all_losses = np.array(all_losses)
+  all_losses
 
-  # plt.figure()
-  # plt.plot(all_losses)
-  # plt.show()
-  # plt.savefig('loss.png')
+  plt.figure()
+  plt.plot(all_losses)
+  plt.show()
+  plt.savefig('loss.png')
 
   dnn_helper.evaluate(dnn, test_set, classes=alldata.labels_uniq)

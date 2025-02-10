@@ -9,6 +9,9 @@ neural network, and changing so each name is now represented as a frequency
 map for each letter. This is not the best translation, but will make due for
 a quick example.
 
+For the TPU example, the notebooks was translated to a main executable for TPU
+best translation. Graphs are added to the directory for reference.
+
 This has caused the model to be a lot more volatile between
 runs. I am doing this case as a basic example, and I am not diving deeper, but
 the behavior I saw definitely suggests overfitting.
