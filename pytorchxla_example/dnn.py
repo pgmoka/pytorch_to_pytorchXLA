@@ -40,17 +40,18 @@ class DeepANN(nn.Module):
 
 def train(model, training_data, n_epoch = 10, n_batch_size = 64, report_every = 50, learning_rate = 0.2, criterion = nn.NLLLoss()):
   """
-  Learn on a batch of training_data for a specified number of iterations and reporting thresholds
+  Learn on a batch of training_data for a specified number of iterations and reporting thresholds.
+  Expect model to be moved to tpu before training
   """
   current_loss = 0
   all_losses = []
+
   model.train()
   optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
   start = time.time()
+  print(f"training on data set with n = {len(training_data)}")
 
-  # Move model to TPU
-  model.to(xla.device())
   for iter in range(1, n_epoch + 1):
     # Use XLA step
     with xla.step():
@@ -63,18 +64,22 @@ def train(model, training_data, n_epoch = 10, n_batch_size = 64, report_every = 
       for idx, batch in enumerate(batches):
         batch_loss = 0
         for i in batch:
-          (label_tensor, text_tensor, label, text) = training_data[i]
+          label_tensor, text_tensor, label, text = training_data[i]
           # Move training data to XLA
-          text_tensor, label_tensor = text_tensor.to(xla.device()), label_tensor.to(xla.device())
+          text_tensor = text_tensor.to(xla.device())
+          label_tensor = label_tensor.to(xla.device())
+
           output = model.forward(text_tensor)
           loss = criterion(output, label_tensor)
           batch_loss += loss
+
         batch_loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), 3)
         optimizer.step()
         optimizer.zero_grad()
 
         current_loss += batch_loss.item() / len(batch)
+
         xm.mark_step()
         xm.wait_device_ops()
 
